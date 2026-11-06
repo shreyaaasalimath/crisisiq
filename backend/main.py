@@ -5,7 +5,7 @@ import json, math
 from datetime import datetime
 
 from models import init_db, get_db, DisasterEvent, Resource
-from fetcher import fetch_earthquakes, fetch_weather_alerts, fetch_news_disasters
+from fetcher import fetch_earthquakes, fetch_weather_alerts, fetch_news_disasters, interleave_by_source
 from agents.triage_agent import triage
 from agents.resource_agent import match_resources
 from agents.comms_agent import draft_alert
@@ -66,10 +66,11 @@ def get_stats(db: Session = Depends(get_db)):
 
 @app.post("/api/fetch-and-analyze")
 def fetch_and_analyze(db: Session = Depends(get_db)):
-    all_events = []
-    all_events.extend(fetch_earthquakes())
-    all_events.extend(fetch_weather_alerts())
-    all_events.extend(fetch_news_disasters())
+    all_events = interleave_by_source(
+        fetch_earthquakes(),
+        fetch_weather_alerts(),
+        fetch_news_disasters(),
+    )
 
     resources = db.query(Resource).all()
     processed = []
